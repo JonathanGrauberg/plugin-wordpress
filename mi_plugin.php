@@ -143,6 +143,7 @@ function handle_mi_plugin_form() {
         }
 
         $tipos_archivos = ['Estudios', 'Informes'];
+
         foreach ($tipos_archivos as $tipo) {
             $archivos_info = get_user_meta($user_id, strtolower($tipo) . '_info', true);
 
@@ -150,33 +151,28 @@ function handle_mi_plugin_form() {
                 $archivos_info = array();
             }
 
-            // Procesar y guardar los archivos
+            // Obtener información del directorio de carga
             $upload_dir = wp_upload_dir();
             $archivos_dir = $upload_dir['basedir'] . '/' . strtolower($tipo) . '/' . $user_id . '/';
 
             wp_mkdir_p($archivos_dir);
 
-            // Verificar si la cantidad de archivos seleccionados es igual a la cantidad de archivos que se están subiendo
             $num_files_selected = count($_FILES[strtolower($tipo)]['name']);
-            $num_files_uploaded = count(array_filter($_FILES[strtolower($tipo)]['error'], function($error) { return $error == 0; }));
-
-            if ($num_files_selected !== $num_files_uploaded) {
-                echo 'Error: La cantidad de archivos de ' . strtolower($tipo) . ' seleccionados no coincide con la cantidad de archivos que se están subiendo.';
-                return;
-            }
 
             for ($i = 0; $i < $num_files_selected; $i++) {
                 $file_name = sanitize_file_name($_FILES[strtolower($tipo)]['name'][$i]);
                 $file_path = $archivos_dir . $file_name;
 
-                // Mover el archivo del directorio temporal al directorio de destino
                 if (move_uploaded_file($_FILES[strtolower($tipo)]['tmp_name'][$i], $file_path)) {
                     $archivos_info[] = array(
                         'file_name' => $file_name,
                         'timestamp' => current_time('timestamp'),
                     );
                 } else {
-                    echo 'Error al subir el archivo ' . $file_name . ' de ' . strtolower($tipo) . '.';
+                    echo '<script>';
+                    echo 'alert("¡Paciente creado pero falta subir: ' . strtolower($tipo) . '!");';
+                    echo '</script>';
+                    
                     return;
                 }
             }
@@ -187,6 +183,12 @@ function handle_mi_plugin_form() {
         echo 'Archivos agregados con éxito.';
     }
 }
+
+
+
+
+
+
 add_action("init", "handle_mi_plugin_form");
 
 function download_file() {
