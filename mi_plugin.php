@@ -1,3 +1,4 @@
+<?php
 /*
 Plugin Name: Mi Plugin
 Description: Plugin personalizado para crear usuarios y subir estudios.
@@ -15,28 +16,51 @@ function mi_plugin_form() {
 
     ob_start();
     ?>
-    <form action="" method="post" enctype="multipart/form-data">
+    <form action="" method="post" enctype="multipart/form-data" required>
+         
+
+        <label for="nombre">Nombre:</label>
+        <input type="text" name="nombre" required>
+
+        <label for="apellido">Apellido:</label>
+        <input type="text" name="apellido" required>
+
+        <label for="dni">DNI:</label>
+        <input type="number" name="dni" required>
+
+        <button type="button" id="generarCredenciales">Generar</button>
+
         <label for="nombre_apellido">Nombre y Apellido:</label>
-        <input type="text" name="nombre_apellido" required>
+        <input type="text" name="nombre_apellido" id="nombre_apellido" readonly required>
 
         <label for="usuario">Usuario:</label>
-        <input type="text" name="usuario" required>
+        <input type="text" name="usuario" id="usuario" readonly required>
 
         <label for="contrasena">Contraseña:</label>
         <div class="password-container">
-            <input type="password" name="contrasena" id="contrasena" required>
+            <input type="password" name="contrasena" id="contrasena" readonly required>
             <button type="button" id="verContrasena">Ver</button>
         </div>
         
+        <input type="hidden" name="usuario_generado" id="usuario_generado" value="">
 
-        <?php foreach (['Estudios', 'Informes'] as $tipo): ?>
-            <div class="drop-area" id="drop-area-<?php echo strtolower($tipo); ?>">
-                <p>Arrastra y suelta tus archivos de <?php echo strtolower($tipo); ?> aquí o haz clic para seleccionarlos.</p>
-                <input type="file" name="<?php echo strtolower($tipo); ?>[]" id="fileElem<?php echo $tipo; ?>" multiple accept=".pdf, .docx, .avi, .bmp, image/*" style="display:none;" />
-                <label class="button" for="fileElem<?php echo $tipo; ?>">Seleccionar <?php echo $tipo; ?></label>
-                <div id="file-info-<?php echo strtolower($tipo); ?>"></div>
-            </div>
-        <?php endforeach; ?>
+        <br>
+
+        <label for="estudios">Subir Estudios:</label>
+        <div class="drop-area" id="drop-area-estudios">
+            <p>Arrastra y suelta tus archivos de estudios aquí o haz clic para seleccionarlos.</p>
+            <input type="file" name="estudios[]" id="fileElemEstudios" multiple accept=".pdf, .docx, .avi, .bmp, dcm, dcim, image/*" style="display:none;" />
+            <label class="button" for="fileElemEstudios">Seleccionar Estudios</label>
+            <div id="file-info-estudios"></div>
+        </div>
+
+        <label for="informes">Subir Informes:</label>
+        <div class="drop-area" id="drop-area-informes">
+            <p>Arrastra y suelta tus archivos de informes aquí o haz clic para seleccionarlos.</p>
+            <input type="file" name="informes[]" id="fileElemInformes" multiple accept=".pdf, .docx, .avi, .bmp, dcm, dcim, image/*" style="display:none;" />
+            <label class="button" for="fileElemInformes">Seleccionar Informes</label>
+            <div id="file-info-informes"></div>
+        </div>
 
         <label for="usuario_existente">Seleccionar Usuario Existente:</label>
         <select name="usuario_existente">
@@ -50,6 +74,7 @@ function mi_plugin_form() {
 
         <input type="submit" name="submit" value="Agregar Estudios e Informes">
     </form>
+
     <style>
         .password-container {
             position: relative;
@@ -63,6 +88,7 @@ function mi_plugin_form() {
             transform: translateY(-50%);
             cursor: pointer;
         }
+
         .drop-area {
             border: 2px dashed #ccc;
             border-radius: 8px;
@@ -76,79 +102,145 @@ function mi_plugin_form() {
             background-color: #eaf7ea;
             border-color: #5cb85c;
         }
+
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 600px) {
+            form {
+                max-width: 100%;
+            }
+
+            label, input {
+                display: block;
+                margin-bottom: 10px;
+            }
+
+            .password-container {
+                width: 100%;
+            }
+
+            #verContrasena {
+                right: 0;
+            }
+
+            .drop-area {
+                margin-top: 10px;
+            }
+        }
     </style>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <script>
-        $(document).ready(function () {
-            $('#verContrasena').on('click', function () {
-                var inputTipoContraseña = $('#contrasena');
-                var tipo = inputTipoContraseña.attr('type');
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('generarCredenciales').addEventListener('click', function() {
+            var nombre = document.querySelector('input[name="nombre"]').value;
+            var apellido = document.querySelector('input[name="apellido"]').value;
+            var dni = document.querySelector('input[name="dni"]').value;
+            
+            // Verificar que los campos obligatorios no estén vacíos
+            if (nombre.trim() === '' || apellido.trim() === '' || dni.trim() === '') {
+            alert('Debes completar los campos Nombre, Apellido y DNI.');
+            return;
+            }
 
-                if (tipo === 'password') {
-                    inputTipoContraseña.attr('type', 'text');
-                } else {
-                    inputTipoContraseña.attr('type', 'password');
-                }
-            });
+            // Lógica para generar usuario y contraseña
+            var usuario = (nombre.charAt(0) + apellido.charAt(0) + dni).toUpperCase();
+            var contrasena = 'IGM' + dni;
 
-            <?php foreach (['Estudios', 'Informes'] as $tipo): ?>
-                var dropArea<?php echo $tipo; ?> = $("#drop-area-<?php echo strtolower($tipo); ?>");
-                var selectedFiles<?php echo $tipo; ?> = [];
+        // Mostrar alerta con los detalles del usuario
+        var confirmacion = confirm('Usuario generado:\nUsuario: ' + usuario + '\nContraseña: ' + contrasena + '\n\n¿Aceptar o Cancelar?');
 
-                dropArea<?php echo $tipo; ?>.on('dragenter', function (e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    dropArea<?php echo $tipo; ?>.addClass('highlight');
-                });
+        if (confirmacion) {
+            // El usuario ha confirmado (aceptar)
+            document.getElementById('usuario').value = usuario;
+            document.getElementById('contrasena').value = contrasena;
+            document.getElementById('usuario_generado').value = usuario;
+            var nombreApellidoInput = document.getElementById('nombre_apellido');
+            nombreApellidoInput.value = nombre + ' ' + apellido;
+        } else {
+            // El usuario ha elegido modificar (cancelar)
+            document.getElementById('nombre').value = '';
+            document.getElementById('apellido').value = '';
+            document.getElementById('dni').value = '';
+            document.getElementById('usuario').value = '';
+            document.getElementById('contrasena').value = '';
+            document.getElementById('usuario_generado').value = '';
+            document.getElementById('nombre_apellido').value = '';
+        }
+    });
 
-                dropArea<?php echo $tipo; ?>.on('dragover', function (e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                });
+        document.getElementById('verContrasena').addEventListener('click', function () {
+            var inputTipoContraseña = document.getElementById('contrasena');
+            var tipo = inputTipoContraseña.type;
 
-                dropArea<?php echo $tipo; ?>.on('dragleave', function (e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    dropArea<?php echo $tipo; ?>.removeClass('highlight');
-                });
-
-                dropArea<?php echo $tipo; ?>.on('drop', function (e) {
-                    e.preventDefault();
-                    dropArea<?php echo $tipo; ?>.removeClass('highlight');
-
-                    var files = e.originalEvent.dataTransfer.files;
-                    $('#fileElem<?php echo $tipo; ?>')[0].files = files;
-
-                    showFileInfo(files, selectedFiles<?php echo $tipo; ?>, 'file-info-<?php echo strtolower($tipo); ?>');
-                });
-
-                $('#fileElem<?php echo $tipo; ?>').on('change', function () {
-                    var files = this.files;
-                    showFileInfo(files, selectedFiles<?php echo $tipo; ?>, 'file-info-<?php echo strtolower($tipo); ?>');
-                });
-            <?php endforeach; ?>
-
-            function showFileInfo(files, selectedFiles, fileInfoDivId) {
-                var fileInfoDiv = $('#' + fileInfoDivId);
-                fileInfoDiv.empty();
-
-                if (files.length > 0) {
-                    fileInfoDiv.append('<p>Archivos seleccionados:</p>');
-                    fileInfoDiv.append('<ul>');
-
-                    Array.prototype.push.apply(selectedFiles, files);
-
-                    for (var i = 0; i < selectedFiles.length; i++) {
-                        fileInfoDiv.append('<li>' + selectedFiles[i].name + '</li>');
-                    }
-
-                    fileInfoDiv.append('</ul>');
-                } else {
-                    fileInfoDiv.append('<p>No se han seleccionado archivos.</p>');
-                }
+            if (tipo === 'password') {
+                inputTipoContraseña.type = 'text';
+            } else {
+                inputTipoContraseña.type = 'password';
             }
         });
-    </script>
+
+        <?php foreach (['Estudios', 'Informes'] as $tipo): ?>
+            var dropArea<?php echo $tipo; ?> = document.getElementById('drop-area-<?php echo strtolower($tipo); ?>');
+            var selectedFiles<?php echo $tipo; ?> = [];
+
+            dropArea<?php echo $tipo; ?>.addEventListener('dragenter', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                dropArea<?php echo $tipo; ?>.classList.add('highlight');
+            });
+
+            dropArea<?php echo $tipo; ?>.addEventListener('dragover', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+            });
+
+            dropArea<?php echo $tipo; ?>.addEventListener('dragleave', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                dropArea<?php echo $tipo; ?>.classList.remove('highlight');
+            });
+
+            dropArea<?php echo $tipo; ?>.addEventListener('drop', function (e) {
+                e.preventDefault();
+                dropArea<?php echo $tipo; ?>.classList.remove('highlight');
+
+                var files = e.dataTransfer.files;
+                document.getElementById('fileElem<?php echo $tipo; ?>').files = files;
+
+                showFileInfo(files, selectedFiles<?php echo $tipo; ?>, 'file-info-<?php echo strtolower($tipo); ?>');
+            });
+
+            document.getElementById('fileElem<?php echo $tipo; ?>').addEventListener('change', function () {
+                var files = this.files;
+                showFileInfo(files, selectedFiles<?php echo $tipo; ?>, 'file-info-<?php echo strtolower($tipo); ?>');
+            });
+        <?php endforeach; ?>
+
+        function showFileInfo(files, selectedFiles, fileInfoDivId) {
+            var fileInfoDiv = document.getElementById(fileInfoDivId);
+            fileInfoDiv.innerHTML = '';
+
+            if (files.length > 0) {
+                fileInfoDiv.innerHTML += '<p>Archivos seleccionados:</p>';
+                fileInfoDiv.innerHTML += '<ul>';
+
+                Array.prototype.push.apply(selectedFiles, files);
+
+                for (var i = 0; i < selectedFiles.length; i++) {
+                    fileInfoDiv.innerHTML += '<li>' + selectedFiles[i].name + '</li>';
+                }
+
+                fileInfoDiv.innerHTML += '</ul>';
+            } else {
+                fileInfoDiv.innerHTML += '<p>No se han seleccionado archivos.</p>';
+            }
+        }
+    });
+</script>
+
     <?php
 
     return ob_get_clean();
@@ -156,66 +248,122 @@ function mi_plugin_form() {
 add_shortcode("mi_plugin_form", "mi_plugin_form");
 
 
+
+
 function handle_mi_plugin_form() {
+    $error_message = ''; // Variable para almacenar el mensaje de error
+    
+
     if (isset($_POST['submit'])) {
+        // Verificar otros campos del formulario
         $nombre_apellido = sanitize_text_field($_POST['nombre_apellido']);
         $usuario = sanitize_text_field($_POST['usuario']);
         $contrasena = $_POST['contrasena'];
         $usuario_existente = isset($_POST['usuario_existente']) ? absint($_POST['usuario_existente']) : 0;
 
-        if ($usuario_existente) {
-            $user_id = $usuario_existente;
+        // Verificar si se han subido archivos
+        $estudios_subidos = !empty($_FILES['estudios']['name'][0]);
+        $informes_subidos = !empty($_FILES['informes']['name'][0]);
+
+        $usuario_generado = sanitize_text_field($_POST['usuario_generado']);
+
+        // Verificar si el usuario ya existe sin seleccionar uno existente
+        if (!$usuario_existente && username_exists($usuario_generado)) {
+            $error_message = 'El usuario ya existe. Por favor, selecciónalo desde el menú -Seleccionar Usuario Existente-.';
         } else {
-            $user_id = wp_create_user($usuario, $contrasena, $usuario);
-
-            if (is_wp_error($user_id)) {
-                echo 'Error al crear el usuario: ' . $user_id->get_error_message();
-                return;
-            }
-
-            update_user_meta($user_id, 'nombre_apellido', $nombre_apellido);
-        }
-
-        $tipos_archivos = ['Estudios', 'Informes'];
-
-        foreach ($tipos_archivos as $tipo) {
-            $archivos_info = get_user_meta($user_id, strtolower($tipo) . '_info', true);
-
-            if (!is_array($archivos_info)) {
-                $archivos_info = array();
-            }
-
-            // Obtener información del directorio de carga
-            $upload_dir = wp_upload_dir();
-            $archivos_dir = $upload_dir['basedir'] . '/' . strtolower($tipo) . '/' . $user_id . '/';
-
-            wp_mkdir_p($archivos_dir);
-
-            $num_files_selected = count($_FILES[strtolower($tipo)]['name']);
-
-            for ($i = 0; $i < $num_files_selected; $i++) {
-                $file_name = sanitize_file_name($_FILES[strtolower($tipo)]['name'][$i]);
-                $file_path = $archivos_dir . $file_name;
-
-                if (move_uploaded_file($_FILES[strtolower($tipo)]['tmp_name'][$i], $file_path)) {
-                    $archivos_info[] = array(
-                        'file_name' => $file_name,
-                        'timestamp' => current_time('timestamp'),
-                    );
+            if (!$estudios_subidos && !$informes_subidos) {
+                $error_message = 'Debes subir al menos un estudio o informe.';
+            } else {
+                if ($usuario_existente) {
+                    $user_id = $usuario_existente;
                 } else {
-                    echo '<script>';
-                    echo 'alert("¡Paciente creado pero falta subir: ' . strtolower($tipo) . '!");';
-                    echo '</script>';
-                    
-                    return;
+                    $user_id = wp_create_user($usuario, $contrasena, $usuario);
+
+                    if (is_wp_error($user_id)) {
+                        $error_message = 'Error al crear el usuario: ' . $user_id->get_error_message();
+                    } else {
+                        update_user_meta($user_id, 'nombre_apellido', $nombre_apellido);
+                    }
+                }
+
+                // Lógica para subir estudios si se han subido
+                if ($estudios_subidos) {
+                    $archivos_info_estudios = handle_file_upload($user_id, 'estudios');
+                }
+
+                // Lógica para subir informes si se han subido
+                if ($informes_subidos) {
+                    $archivos_info_informes = handle_file_upload($user_id, 'informes');
+                }
+
+                // Si no hay errores hasta este punto, mostrar la alerta de éxito
+                if (empty($error_message)) {
+                    echo '<script>alert("Archivos cargados con éxito.");</script>';
+                }
+
+                // Verificar si solo se ha subido un tipo de archivo y mostrar alerta
+                if (($estudios_subidos && !$informes_subidos) || (!$estudios_subidos && $informes_subidos)) {
+                    echo '<script>alert("Se ha subido solo un tipo de archivo. Te recomendamos subir ambos estudios e informes para una mejor gestión.");</script>';
                 }
             }
+        }
+    }
 
-            update_user_meta($user_id, strtolower($tipo) . '_info', $archivos_info);
+    // Mostrar el mensaje de error mediante JavaScript solo si hay un error
+    if ($error_message) {
+        echo '<script>alert("' . esc_js($error_message) . '");</script>';
+    }
+}
+
+
+
+
+
+
+
+function handle_file_upload($user_id, $tipo_archivo) {
+    $archivos_info = get_user_meta($user_id, strtolower($tipo_archivo) . '_info', true);
+
+    if (!is_array($archivos_info)) {
+        $archivos_info = array();
+    }
+
+    // Obtener información del directorio de carga
+    $upload_dir = wp_upload_dir();
+    $archivos_dir = $upload_dir['basedir'] . '/' . strtolower($tipo_archivo) . '/' . $user_id . '/';
+
+    wp_mkdir_p($archivos_dir);
+
+    $num_files_selected = count($_FILES[strtolower($tipo_archivo)]['name']);
+
+    for ($i = 0; $i < $num_files_selected; $i++) {
+        $file_name = sanitize_file_name($_FILES[strtolower($tipo_archivo)]['name'][$i]);
+        $file_path = $archivos_dir . $file_name;
+
+        // Verificar si el archivo ya existe y agregar un prefijo con el timestamp si es necesario
+        if (file_exists($file_path)) {
+            $timestamp = current_time('timestamp');
+            $file_name = $timestamp . '_' . $file_name;
+            $file_path = $archivos_dir . $file_name;
         }
 
-        echo 'Archivos agregados con éxito.';
+        if (move_uploaded_file($_FILES[strtolower($tipo_archivo)]['tmp_name'][$i], $file_path)) {
+            $archivos_info[] = array(
+                'file_name' => $file_name,
+                'timestamp' => current_time('timestamp'),
+            );
+        } else {
+            echo '<script>';
+            echo 'alert("¡Paciente creado pero falta subir: ' . strtolower($tipo_archivo) . '!");';
+            echo '</script>';
+            
+            return;
+        }
     }
+
+    update_user_meta($user_id, strtolower($tipo_archivo) . '_info', $archivos_info);
+
+    return $archivos_info;
 }
 
 
@@ -228,11 +376,14 @@ add_action("init", "handle_mi_plugin_form");
 function download_file() {
     if (isset($_GET['download']) && $_GET['download'] !== '') {
         $file_name = urldecode($_GET['download']);
-        $user_id = get_current_user_id();
+        $user_id = isset($_GET['paciente_id']) ? absint($_GET['paciente_id']) : get_current_user_id();
 
         // Rutas para estudios e informes
-        $estudios_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . 'estudios' . DIRECTORY_SEPARATOR . $user_id . DIRECTORY_SEPARATOR . $file_name;
-        $informes_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . 'informes' . DIRECTORY_SEPARATOR . $user_id . DIRECTORY_SEPARATOR . $file_name;
+        $estudios_dir = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . 'estudios' . DIRECTORY_SEPARATOR;
+        $informes_dir = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . 'informes' . DIRECTORY_SEPARATOR;
+
+        $estudios_path = $estudios_dir . $user_id . DIRECTORY_SEPARATOR . $file_name;
+        $informes_path = $informes_dir . $user_id . DIRECTORY_SEPARATOR . $file_name;
 
         if (file_exists($estudios_path)) {
             $file_path = $estudios_path;
@@ -254,26 +405,29 @@ function download_file() {
 
         $file_size = filesize($file_path);
 
-        // Construir la URL del archivo en lugar de la ruta local
-        if (file_exists($estudios_path)) {
-            $file_url = wp_upload_dir()['baseurl'] . '/estudios/' . $user_id . '/' . $file_name;
-        } elseif (file_exists($informes_path)) {
-            $file_url = wp_upload_dir()['baseurl'] . '/informes/' . $user_id . '/' . $file_name;
+        // Verificar la existencia del archivo antes de enviarlo
+        if (file_exists($file_path)) {
+            header('Content-Description: File Transfer');
+            header('Content-Type: ' . $mime_type);
+            header('Content-Disposition: attachment; filename="' . $file_name . '"');
+            header('Expires: 0');
+            header('Cache-Control: must-revalidate');
+            header('Pragma: public');
+            header('Content-Length: ' . $file_size);
+            readfile($file_path); // Usar la ruta local en lugar de la URL
+            exit;
+        } else {
+            echo 'Error: El archivo no existe en la ruta especificada.<br>';
+            return;
         }
-
-        header('Content-Description: File Transfer');
-        header('Content-Type: ' . $mime_type);
-        header('Content-Disposition: attachment; filename="' . $file_name . '"');
-        header('Expires: 0');
-        header('Cache-Control: must-revalidate');
-        header('Pragma: public');
-        header('Content-Length: ' . $file_size);
-        readfile($file_url); // Usar la URL en lugar de la ruta local
-        exit;
     }
 }
 
 add_action('init', 'download_file');
+
+
+
+
 
 function add_nombre_column($columns) {
     $columns['nombre_apellido'] = 'Nombre';
@@ -314,21 +468,22 @@ function mostrar_estudios_informes_usuario() {
                         </thead>
                         <tbody>
                             <?php foreach ($archivos_info as $archivo) : ?>
-                                <?php
-                                // Construir la ruta del archivo
-                                $file_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . strtolower($tipo) . DIRECTORY_SEPARATOR . $user_id . DIRECTORY_SEPARATOR . $archivo['file_name'];
-                                ?>
-                                <?php if (file_exists($file_path)) : ?>
-                                    <tr>
-                                        <td>
-                                            <a href="<?php echo esc_url(add_query_arg(array('download' => urlencode($archivo['file_name'])), site_url())); ?>">
-                                                <?php echo esc_html($archivo['file_name']); ?>
-                                            </a>
-                                        </td>
-                                        <td><?php echo date('d/m/Y H:i:s', $archivo['timestamp']); ?></td>
-                                    </tr>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
+    <?php
+    // Construir la ruta del archivo
+    $file_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . strtolower($tipo) . DIRECTORY_SEPARATOR . $user_id . DIRECTORY_SEPARATOR . $archivo['file_name'];
+    ?>
+    <?php if (file_exists($file_path)) : ?>
+        <tr>
+            <td>
+                <a href="<?php echo esc_url(add_query_arg(array('download' => urlencode($archivo['file_name'])), site_url())); ?>">
+                    <?php echo esc_html($archivo['file_name']); ?>
+                </a>
+            </td>
+            <td><?php echo date('d/m/Y H:i:s', $archivo['timestamp']); ?></td>
+        </tr>
+    <?php endif; ?>
+<?php endforeach; ?>
+
                         </tbody>
                     </table>
                 </div>
@@ -368,6 +523,7 @@ function mostrar_estudios_informes_usuario() {
 
     return ob_get_clean();
 }
+
 add_shortcode("mostrar_estudios_informes_usuario", "mostrar_estudios_informes_usuario");
 
 
@@ -379,25 +535,54 @@ function seleccionar_paciente_form() {
     ob_start();
     ?>
     <form action="" method="post">
-        <label for="paciente_existente">Seleccionar Paciente Existente:</label>
-        <select name="paciente_existente">
-            <option value="">Seleccionar Paciente</option>
-            <?php
-            foreach (get_users() as $user) {
-                echo '<option value="' . esc_attr($user->ID) . '">' . esc_html($user->display_name) . '</option>';
-            }
-            ?>
-        </select>
-        <input type="submit" name="seleccionar_paciente" value="Seleccionar Paciente">
+        <label for="busqueda_paciente">Buscar Paciente por Usuario o DNI:</label>
+        <input type="text" name="busqueda_paciente" id="busqueda_paciente" value="<?php echo isset($_POST['busqueda_paciente']) ? esc_attr($_POST['busqueda_paciente']) : ''; ?>">
+        
+        <input type="submit" name="buscar_paciente" value="Buscar">
+        <br>
     </form>
 
     <?php
+    // Verificar si se ha presionado el botón de búsqueda y buscar usuarios
+    if (isset($_POST['buscar_paciente'])) {
+        $busqueda = isset($_POST['busqueda_paciente']) ? sanitize_text_field($_POST['busqueda_paciente']) : '';
+
+        $args = array(
+            'search'         => "*{$busqueda}*",
+            'search_columns' => array('user_login', 'user_nicename', 'display_name', 'user_email'),
+        );
+
+        $users = get_users($args);
+
+        // Mostrar la sección "Seleccionar Paciente" solo si se encontraron usuarios
+        if (!empty($users)) {
+    ?>
+            <form action="" method="post">
+                <label for="paciente_existente">Seleccionar Paciente:</label>
+                <select name="paciente_existente">
+                    <?php
+                    foreach ($users as $user) {
+                        echo '<option value="' . esc_attr($user->ID) . '">' . esc_html($user->display_name) . '</option>';
+                    }
+                    ?>
+                </select>
+                
+                <input type="submit" name="seleccionar_paciente" value="Seleccionar Paciente">
+            </form>
+    <?php
+        }
+    }
+
     if (isset($_POST['seleccionar_paciente']) && isset($_POST['paciente_existente'])) {
         $paciente_id = absint($_POST['paciente_existente']);
         $user_data = get_userdata($paciente_id);
-        $nombre_paciente = $user_data->display_name;
+        $nombre_paciente = get_user_meta($paciente_id, 'nombre_apellido', true);
 
-        echo '<h2>Detalles del Paciente: ' . esc_html($nombre_paciente) . '</h2>';
+        if ($nombre_paciente) {
+            echo '<h2>Detalles del Paciente: ' . esc_html($nombre_paciente) . '</h2>';
+        } else {
+            echo '<h2>Detalles del Paciente: Usuario ID ' . esc_html($user_data->display_name) . '</h2>';
+        }
 
         // Mostrar archivos existentes y permitir eliminación
         mostrar_estudios_informes_paciente($paciente_id);
@@ -406,54 +591,62 @@ function seleccionar_paciente_form() {
 }
 add_shortcode("seleccionar_paciente_form", "seleccionar_paciente_form");
 
+
+
+
+
+
+
 function mostrar_estudios_informes_paciente($user_id) {
     $tipos_archivos = ['Estudios', 'Informes'];
 
     foreach ($tipos_archivos as $tipo) {
         $archivos_info = get_user_meta($user_id, strtolower($tipo) . '_info', true);
 
-        if (is_array($archivos_info) && !empty($archivos_info)) {
-            ?>
-            <h3><?php echo 'Mis ' . $tipo; ?></h3>
-            <div class="<?php echo strtolower($tipo); ?>-table-container">
-                <table class="<?php echo strtolower($tipo); ?>-table">
-                    <!-- Encabezados y contenido de la tabla -->
-                    <thead>
-                        <tr>
-                            <th>Nombre del Archivo</th>
-                            <th>Fecha de Subida</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($archivos_info as $archivo) : ?>
-                            <?php
-                            // Construir la ruta del archivo
-                            $file_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . strtolower($tipo) . DIRECTORY_SEPARATOR . $user_id . DIRECTORY_SEPARATOR . $archivo['file_name'];
-                            ?>
-                            <?php if (file_exists($file_path)) : ?>
-                                <tr>
-                                    <td>
+        ?>
+        <h3><?php echo 'Sus ' . $tipo; ?></h3>
+        <div class="<?php echo strtolower($tipo); ?>-table-container">
+            <table class="<?php echo strtolower($tipo); ?>-table">
+                <thead>
+                    <tr>
+                        <th>Nombre del Archivo</th>
+                        <th>Fecha de Subida</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($archivos_info as $archivo) : ?>
+                        <?php
+                        $file_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . strtolower($tipo) . DIRECTORY_SEPARATOR . $user_id . DIRECTORY_SEPARATOR . $archivo['file_name'];
+                        ?>
+                        <?php if (file_exists($file_path)) : ?>
+                            <tr>
+                                <td>
+                                    <a href="<?php echo esc_url(add_query_arg(array('download' => urlencode($archivo['file_name']), 'paciente_id' => $user_id), site_url())); ?>">
                                         <?php echo esc_html($archivo['file_name']); ?>
-                                    </td>
-                                    <td><?php echo date('d/m/Y H:i:s', $archivo['timestamp']); ?></td>
-                                    <td>
-                                        <a href="<?php echo esc_url(add_query_arg(array('eliminar_archivo' => urlencode($archivo['file_name']), 'paciente_id' => $user_id), site_url())); ?>">
-                                            Eliminar
-                                        </a>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+                                    </a>
+                                </td>
+                                <td><?php echo date('d/m/Y H:i:s', $archivo['timestamp']); ?></td>
+                                <td>
+                                    <a href="<?php echo esc_url(add_query_arg(array('eliminar_archivo' => urlencode($archivo['file_name']), 'paciente_id' => $user_id), site_url())); ?>">
+                                        Eliminar
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
             <?php
-        } else {
-            echo 'Aún no hay ' . strtolower($tipo) . ' cargados.';
-        }
+            $user_name = get_user_by('ID', $user_id)->display_name;
+            echo '<a href="https://imagengrupomedico.com/agregar-archivos/?user_id=' . $user_id . '"><button>Agregar Archivos</button></a>';
+            ?>
+        </div>
+        <?php
     }
 }
+
+
 
 
 
@@ -488,3 +681,152 @@ function eliminar_archivo() {
     }
 }
 add_action('init', 'eliminar_archivo');
+
+
+
+function formulario_carga_archivos_shortcode() {
+    ob_start();
+
+    
+    $user_id = isset($_GET['user_id']) ? absint($_GET['user_id']) : 0;
+
+   
+    if (!$user_id || !get_user_by('ID', $user_id)) {
+        echo '<p>Usuario no válido.</p>';
+        return;
+    }
+
+    $user_name = get_user_by('ID', $user_id)->display_name;
+
+    if (isset($_POST['submit'])) {
+        // Lógica para subir estudios si se han subido
+        if (!empty($_FILES['estudios']['name'][0])) {
+            $archivos_info_estudios = handle_file_upload_for_selected_patient($user_id, 'estudios');
+        }
+
+        // Lógica para subir informes si se han subido
+        if (!empty($_FILES['informes']['name'][0])) {
+            $archivos_info_informes = handle_file_upload_for_selected_patient($user_id, 'informes');
+        }
+
+        // Si no hay errores hasta este punto, mostrar la alerta de éxito
+        echo '<script>alert("Archivos cargados con éxito.");</script>';
+    }
+
+    // Mostrar el formulario de carga de archivos
+    ?>
+       <div class="formulario-carga-archivos">
+            <h2>Agregar archivos al paciente: <?php echo esc_html($user_name); ?></h2>
+            <?php foreach (['Estudios', 'Informes'] as $tipo): ?>
+                <div class="drop-area" id="drop-area-<?php echo strtolower($tipo); ?>">
+                <form class="my-form">
+                    <p>Arrastra y suelta tus archivos aquí o haz clic para seleccionar.</p>
+                    <input type="file" id="fileElem<?php echo $tipo; ?>" multiple accept=".pdf, .docx, .avi, .bmp, image/*" style="display: none;" />
+                    <label class="button" for="fileElem<?php echo $tipo; ?>">Seleccionar archivos</label>
+                    <div id="file-info-<?php echo strtolower($tipo); ?>"></div>
+            </div>
+        <?php endforeach; ?>
+                <input type="submit" name="submit" value="Agregar Estudios e Informes">
+
+    </form>
+    <style>
+        .drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .drop-area.highlight {
+            background-color: #eaf7ea;
+            border-color: #5cb85c;
+        }
+
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 600px) {
+            form {
+                max-width: 100%;
+            }
+
+            label, input {
+                display: block;
+                margin-bottom: 10px;
+            }
+            .drop-area {
+                margin-top: 10px;
+            }
+        }
+    </style>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        <?php foreach (['Estudios', 'Informes'] as $tipo): ?>
+            var dropArea<?php echo $tipo; ?> = document.getElementById('drop-area-<?php echo strtolower($tipo); ?>');
+            var selectedFiles<?php echo $tipo; ?> = [];
+
+            dropArea<?php echo $tipo; ?>.addEventListener('dragenter', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                dropArea<?php echo $tipo; ?>.classList.add('highlight');
+            });
+
+            dropArea<?php echo $tipo; ?>.addEventListener('dragover', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+            });
+
+            dropArea<?php echo $tipo; ?>.addEventListener('dragleave', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                dropArea<?php echo $tipo; ?>.classList.remove('highlight');
+            });
+
+            dropArea<?php echo $tipo; ?>.addEventListener('drop', function (e) {
+                e.preventDefault();
+                dropArea<?php echo $tipo; ?>.classList.remove('highlight');
+                var files = e.dataTransfer.files;
+                document.getElementById('fileElem<?php echo $tipo; ?>').files = files;
+                showFileInfo(files, selectedFiles<?php echo $tipo; ?>, 'file-info-<?php echo strtolower($tipo); ?>');
+            });
+
+            document.getElementById('fileElem<?php echo $tipo; ?>').addEventListener('change', function () {
+                var files = this.files;
+                showFileInfo(files, selectedFiles<?php echo $tipo; ?>, 'file-info-<?php echo strtolower($tipo); ?>');
+            });
+        <?php endforeach; ?>
+
+        function showFileInfo(files, selectedFiles, fileInfoDivId) {
+            var fileInfoDiv = document.getElementById(fileInfoDivId);
+            fileInfoDiv.innerHTML = '';
+
+            if (files.length > 0) {
+                fileInfoDiv.innerHTML += '<p>Archivos seleccionados:</p>';
+                fileInfoDiv.innerHTML += '<ul>';
+
+                Array.prototype.push.apply(selectedFiles, files);
+
+                for (var i = 0; i < selectedFiles.length; i++) {
+                    fileInfoDiv.innerHTML += '<li>' + selectedFiles[i].name + '</li>';
+                }
+
+                fileInfoDiv.innerHTML += '</ul>';
+            } else {
+                fileInfoDiv.innerHTML += '<p>No se han seleccionado archivos.</p>';
+            }
+        }
+    });
+    </script>
+    <?php
+    return ob_get_clean();
+}
+
+// Registra el shortcode
+add_shortcode('formulario_carga_archivos', 'formulario_carga_archivos_shortcode');
+
+
