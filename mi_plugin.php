@@ -1,4 +1,3 @@
-<?php
 /*
 Plugin Name: Mi Plugin
 Description: Plugin personalizado para crear usuarios y subir estudios.
@@ -7,6 +6,13 @@ Author: Jonathan Grauberg
 */
 
 function mi_plugin_form() {
+    // Verificar si el usuario está autenticado
+    if (!is_user_logged_in()) {
+        // Redirigir al usuario a la página de inicio de sesión específica
+        wp_redirect('https://imagengrupomedico.com/login-user/');
+        exit;
+    }
+
     ob_start();
     ?>
     <form action="" method="post" enctype="multipart/form-data">
@@ -17,7 +23,11 @@ function mi_plugin_form() {
         <input type="text" name="usuario" required>
 
         <label for="contrasena">Contraseña:</label>
-        <input type="password" name="contrasena" required>
+        <div class="password-container">
+            <input type="password" name="contrasena" id="contrasena" required>
+            <button type="button" id="verContrasena">Ver</button>
+        </div>
+        
 
         <?php foreach (['Estudios', 'Informes'] as $tipo): ?>
             <div class="drop-area" id="drop-area-<?php echo strtolower($tipo); ?>">
@@ -41,6 +51,18 @@ function mi_plugin_form() {
         <input type="submit" name="submit" value="Agregar Estudios e Informes">
     </form>
     <style>
+        .password-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        #verContrasena {
+            position: absolute;
+            top: 50%;
+            right: 5px;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
         .drop-area {
             border: 2px dashed #ccc;
             border-radius: 8px;
@@ -58,6 +80,17 @@ function mi_plugin_form() {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function () {
+            $('#verContrasena').on('click', function () {
+                var inputTipoContraseña = $('#contrasena');
+                var tipo = inputTipoContraseña.attr('type');
+
+                if (tipo === 'password') {
+                    inputTipoContraseña.attr('type', 'text');
+                } else {
+                    inputTipoContraseña.attr('type', 'password');
+                }
+            });
+
             <?php foreach (['Estudios', 'Informes'] as $tipo): ?>
                 var dropArea<?php echo $tipo; ?> = $("#drop-area-<?php echo strtolower($tipo); ?>");
                 var selectedFiles<?php echo $tipo; ?> = [];
@@ -122,6 +155,7 @@ function mi_plugin_form() {
 }
 add_shortcode("mi_plugin_form", "mi_plugin_form");
 
+
 function handle_mi_plugin_form() {
     if (isset($_POST['submit'])) {
         $nombre_apellido = sanitize_text_field($_POST['nombre_apellido']);
@@ -143,6 +177,7 @@ function handle_mi_plugin_form() {
         }
 
         $tipos_archivos = ['Estudios', 'Informes'];
+
         foreach ($tipos_archivos as $tipo) {
             $archivos_info = get_user_meta($user_id, strtolower($tipo) . '_info', true);
 
@@ -150,33 +185,28 @@ function handle_mi_plugin_form() {
                 $archivos_info = array();
             }
 
-            // Procesar y guardar los archivos
+            // Obtener información del directorio de carga
             $upload_dir = wp_upload_dir();
             $archivos_dir = $upload_dir['basedir'] . '/' . strtolower($tipo) . '/' . $user_id . '/';
 
             wp_mkdir_p($archivos_dir);
 
-            // Verificar si la cantidad de archivos seleccionados es igual a la cantidad de archivos que se están subiendo
             $num_files_selected = count($_FILES[strtolower($tipo)]['name']);
-            $num_files_uploaded = count(array_filter($_FILES[strtolower($tipo)]['error'], function($error) { return $error == 0; }));
-
-            if ($num_files_selected !== $num_files_uploaded) {
-                echo 'Error: La cantidad de archivos de ' . strtolower($tipo) . ' seleccionados no coincide con la cantidad de archivos que se están subiendo.';
-                return;
-            }
 
             for ($i = 0; $i < $num_files_selected; $i++) {
                 $file_name = sanitize_file_name($_FILES[strtolower($tipo)]['name'][$i]);
                 $file_path = $archivos_dir . $file_name;
 
-                // Mover el archivo del directorio temporal al directorio de destino
                 if (move_uploaded_file($_FILES[strtolower($tipo)]['tmp_name'][$i], $file_path)) {
                     $archivos_info[] = array(
                         'file_name' => $file_name,
                         'timestamp' => current_time('timestamp'),
                     );
                 } else {
-                    echo 'Error al subir el archivo ' . $file_name . ' de ' . strtolower($tipo) . '.';
+                    echo '<script>';
+                    echo 'alert("¡Paciente creado pero falta subir: ' . strtolower($tipo) . '!");';
+                    echo '</script>';
+                    
                     return;
                 }
             }
@@ -187,6 +217,12 @@ function handle_mi_plugin_form() {
         echo 'Archivos agregados con éxito.';
     }
 }
+
+
+
+
+
+
 add_action("init", "handle_mi_plugin_form");
 
 function download_file() {
@@ -278,14 +314,20 @@ function mostrar_estudios_informes_usuario() {
                         </thead>
                         <tbody>
                             <?php foreach ($archivos_info as $archivo) : ?>
-                                <tr>
-                                    <td>
-                                        <a href="<?php echo esc_url(add_query_arg(array('download' => urlencode($archivo['file_name'])), site_url())); ?>">
-                                            <?php echo esc_html($archivo['file_name']); ?>
-                                        </a>
-                                    </td>
-                                    <td><?php echo date('d/m/Y H:i:s', $archivo['timestamp']); ?></td>
-                                </tr>
+                                <?php
+                                // Construir la ruta del archivo
+                                $file_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . strtolower($tipo) . DIRECTORY_SEPARATOR . $user_id . DIRECTORY_SEPARATOR . $archivo['file_name'];
+                                ?>
+                                <?php if (file_exists($file_path)) : ?>
+                                    <tr>
+                                        <td>
+                                            <a href="<?php echo esc_url(add_query_arg(array('download' => urlencode($archivo['file_name'])), site_url())); ?>">
+                                                <?php echo esc_html($archivo['file_name']); ?>
+                                            </a>
+                                        </td>
+                                        <td><?php echo date('d/m/Y H:i:s', $archivo['timestamp']); ?></td>
+                                    </tr>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -326,6 +368,123 @@ function mostrar_estudios_informes_usuario() {
 
     return ob_get_clean();
 }
-
-
 add_shortcode("mostrar_estudios_informes_usuario", "mostrar_estudios_informes_usuario");
+
+
+
+
+
+
+function seleccionar_paciente_form() {
+    ob_start();
+    ?>
+    <form action="" method="post">
+        <label for="paciente_existente">Seleccionar Paciente Existente:</label>
+        <select name="paciente_existente">
+            <option value="">Seleccionar Paciente</option>
+            <?php
+            foreach (get_users() as $user) {
+                echo '<option value="' . esc_attr($user->ID) . '">' . esc_html($user->display_name) . '</option>';
+            }
+            ?>
+        </select>
+        <input type="submit" name="seleccionar_paciente" value="Seleccionar Paciente">
+    </form>
+
+    <?php
+    if (isset($_POST['seleccionar_paciente']) && isset($_POST['paciente_existente'])) {
+        $paciente_id = absint($_POST['paciente_existente']);
+        $user_data = get_userdata($paciente_id);
+        $nombre_paciente = $user_data->display_name;
+
+        echo '<h2>Detalles del Paciente: ' . esc_html($nombre_paciente) . '</h2>';
+
+        // Mostrar archivos existentes y permitir eliminación
+        mostrar_estudios_informes_paciente($paciente_id);
+    }
+    return ob_get_clean();
+}
+add_shortcode("seleccionar_paciente_form", "seleccionar_paciente_form");
+
+function mostrar_estudios_informes_paciente($user_id) {
+    $tipos_archivos = ['Estudios', 'Informes'];
+
+    foreach ($tipos_archivos as $tipo) {
+        $archivos_info = get_user_meta($user_id, strtolower($tipo) . '_info', true);
+
+        if (is_array($archivos_info) && !empty($archivos_info)) {
+            ?>
+            <h3><?php echo 'Mis ' . $tipo; ?></h3>
+            <div class="<?php echo strtolower($tipo); ?>-table-container">
+                <table class="<?php echo strtolower($tipo); ?>-table">
+                    <!-- Encabezados y contenido de la tabla -->
+                    <thead>
+                        <tr>
+                            <th>Nombre del Archivo</th>
+                            <th>Fecha de Subida</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($archivos_info as $archivo) : ?>
+                            <?php
+                            // Construir la ruta del archivo
+                            $file_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . strtolower($tipo) . DIRECTORY_SEPARATOR . $user_id . DIRECTORY_SEPARATOR . $archivo['file_name'];
+                            ?>
+                            <?php if (file_exists($file_path)) : ?>
+                                <tr>
+                                    <td>
+                                        <?php echo esc_html($archivo['file_name']); ?>
+                                    </td>
+                                    <td><?php echo date('d/m/Y H:i:s', $archivo['timestamp']); ?></td>
+                                    <td>
+                                        <a href="<?php echo esc_url(add_query_arg(array('eliminar_archivo' => urlencode($archivo['file_name']), 'paciente_id' => $user_id), site_url())); ?>">
+                                            Eliminar
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php
+        } else {
+            echo 'Aún no hay ' . strtolower($tipo) . ' cargados.';
+        }
+    }
+}
+
+
+
+
+function eliminar_archivo() {
+    if (isset($_GET['eliminar_archivo']) && isset($_GET['paciente_id'])) {
+        $file_name = urldecode($_GET['eliminar_archivo']);
+        $paciente_id = absint($_GET['paciente_id']);
+
+        // Rutas para estudios e informes
+        $estudios_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . 'estudios' . DIRECTORY_SEPARATOR . $paciente_id . DIRECTORY_SEPARATOR . $file_name;
+        $informes_path = wp_upload_dir()['basedir'] . DIRECTORY_SEPARATOR . 'informes' . DIRECTORY_SEPARATOR . $paciente_id . DIRECTORY_SEPARATOR . $file_name;
+
+        // Construir la URL del archivo en lugar de la ruta local
+        if (file_exists($estudios_path)) {
+            $file_url = wp_upload_dir()['baseurl'] . '/estudios/' . $paciente_id . '/' . $file_name;
+        } elseif (file_exists($informes_path)) {
+            $file_url = wp_upload_dir()['baseurl'] . '/informes/' . $paciente_id . '/' . $file_name;
+        } else {
+            echo 'Error: El archivo no existe en ninguna de las rutas especificadas.<br>';
+            return;
+        }
+
+        // Eliminar archivo
+        unlink($estudios_path);
+        unlink($informes_path);
+        
+        
+        wp_redirect('https://imagengrupomedico.com/consultar-pacientes');
+        exit;
+        
+    }
+}
+add_action('init', 'eliminar_archivo');
